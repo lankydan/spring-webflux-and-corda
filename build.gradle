@@ -116,7 +116,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
 
 task runPartyAServer(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
-    main = 'net.corda.server.ServerKt'
+    main = 'com.lankydanblog.tutorial.server.ServerKt'
     environment "server.port", "10011"
     environment "config.rpc.username", "user1"
     environment "config.rpc.password", "test"
@@ -126,7 +126,7 @@ task runPartyAServer(type: JavaExec) {
 
 task runPartyBServer(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
-    main = 'net.corda.server.ServerKt'
+    main = 'com.lankydanblog.tutorial.server.ServerKt'
     environment "server.port", "10012"
     environment "config.rpc.username", "user1"
     environment "config.rpc.password", "test"

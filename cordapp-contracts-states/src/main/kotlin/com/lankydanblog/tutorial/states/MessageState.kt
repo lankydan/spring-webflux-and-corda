@@ -1,4 +1,4 @@
-package net.corda.states
+package com.lankydanblog.tutorial.states
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import net.corda.core.contracts.LinearState

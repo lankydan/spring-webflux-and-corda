@@ -1,4 +1,4 @@
-package net.corda.server
+package com.lankydanblog.tutorial.server
 
 import net.corda.client.rpc.CordaRPCClient
 import net.corda.client.rpc.CordaRPCConnection
@@ -27,22 +27,14 @@ private const val CORDA_RPC_PORT = "config.rpc.port"
  */
 @Component
 class NodeRPCConnection(
-        @Value("\${$CORDA_NODE_HOST}") private val host: String,
-        @Value("\${$CORDA_RPC_PORT}") private val rpcPort: Int,
-        @Value("\${$CORDA_USER_NAME}") private val username: String,
-        @Value("\${$CORDA_USER_PASSWORD}") private val password: String) : AutoCloseable {
+    @Value("\${$CORDA_NODE_HOST}") private val host: String,
+    @Value("\${$CORDA_RPC_PORT}") private val rpcPort: Int,
+    @Value("\${$CORDA_USER_NAME}") private val username: String,
+    @Value("\${$CORDA_USER_PASSWORD}") private val password: String) : AutoCloseable {
 
     private val rpcConnection: CordaRPCConnection
     // final because of the kotlin spring plugin making everything open by default
     final val proxy: CordaRPCOps
-
-//    @PostConstruct
-//    fun initialiseNodeRPCConnection() {
-//        val rpcAddress = NetworkHostAndPort(host, rpcPort)
-//        val rpcClient = CordaRPCClient(rpcAddress)
-//        val rpcConnection = rpcClient.start(username, password)
-//        proxy = rpcConnection.proxy
-//    }
 
     init {
         val rpcAddress = NetworkHostAndPort(host, rpcPort)

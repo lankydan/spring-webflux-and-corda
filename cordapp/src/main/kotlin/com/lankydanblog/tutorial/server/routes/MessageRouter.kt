@@ -1,6 +1,6 @@
-package net.corda.server.routes
+package com.lankydanblog.tutorial.server.routes
 
-import net.corda.server.handlers.MessageHandler
+import com.lankydanblog.tutorial.server.handlers.MessageHandler
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.MediaType

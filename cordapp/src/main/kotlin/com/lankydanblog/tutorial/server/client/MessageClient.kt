@@ -1,32 +1,25 @@
-package net.corda.server.client
+package com.lankydanblog.tutorial.server.client
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.lankydanblog.tutorial.server.dto.Message
 import net.corda.core.node.services.Vault
-import net.corda.server.dto.Message
-import net.corda.states.MessageState
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.MediaType
-import org.springframework.http.MediaType.*
-import org.springframework.web.reactive.function.client.WebClient
-import reactor.core.publisher.Mono
+import org.springframework.http.MediaType.APPLICATION_STREAM_JSON
+import org.springframework.http.MediaType.TEXT_EVENT_STREAM
 import org.springframework.http.codec.json.Jackson2JsonDecoder
 import org.springframework.http.codec.json.Jackson2JsonEncoder
 import org.springframework.web.reactive.function.client.ExchangeStrategies
+import org.springframework.web.reactive.function.client.WebClient
+import reactor.core.publisher.Mono
 
 
-class MessageClient(val rpcObjectMapper: ObjectMapper) {
+class MessageClient(private val encoder: Jackson2JsonEncoder, private val decoder: Jackson2JsonDecoder) {
 
-    var strategies = ExchangeStrategies
+    private val strategies = ExchangeStrategies
         .builder()
         .codecs { clientDefaultCodecsConfigurer ->
-            val encoder = Jackson2JsonEncoder(rpcObjectMapper, MediaType.APPLICATION_JSON)
-            encoder.streamingMediaTypes = listOf(
-                MediaType.APPLICATION_STREAM_JSON
-            )
             clientDefaultCodecsConfigurer.defaultCodecs()
                 .jackson2JsonEncoder(encoder)
             clientDefaultCodecsConfigurer.defaultCodecs()
-                .jackson2JsonDecoder(Jackson2JsonDecoder(rpcObjectMapper, MediaType.APPLICATION_JSON, MediaType.APPLICATION_STREAM_JSON))
+                .jackson2JsonDecoder(decoder)
 
         }.build()
 
@@ -52,14 +45,6 @@ class MessageClient(val rpcObjectMapper: ObjectMapper) {
             .exchange()
             .flatMapMany { it.bodyToFlux(Vault.Update::class.java) }
             .subscribe { println("STEP: $it") }
-
-//        client
-//            .get()
-//            .uri("/messages/updates")
-//            .accept(APPLICATION_STREAM_JSON)
-//            .exchange()
-//            .flatMapMany { it.bodyToFlux(MessageState::class.java) }
-//            .subscribe { println("STEP: $it") }
 
     }
 }

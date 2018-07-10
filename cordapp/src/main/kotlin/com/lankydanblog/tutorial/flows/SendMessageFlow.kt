@@ -1,14 +1,14 @@
-package net.corda.flows
+package com.lankydanblog.tutorial.flows
 
 import co.paralleluniverse.fibers.Suspendable
-import net.corda.contracts.MessageContract
+import com.lankydanblog.tutorial.contracts.MessageContract
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
-import net.corda.states.MessageState
+import com.lankydanblog.tutorial.states.MessageState
 
 @InitiatingFlow
 @StartableByRPC
@@ -21,7 +21,13 @@ class SendMessageFlow(private val message: MessageState) : FlowLogic<SignedTrans
         object COUNTERPARTY : ProgressTracker.Step("Sending to Counterparty")
         object FINALISING : ProgressTracker.Step("Finalising")
 
-        private fun tracker() = ProgressTracker(CREATING, VERIFYING, SIGNING, COUNTERPARTY, FINALISING)
+        private fun tracker() = ProgressTracker(
+            CREATING,
+            VERIFYING,
+            SIGNING,
+            COUNTERPARTY,
+            FINALISING
+        )
     }
 
     override val progressTracker = tracker()

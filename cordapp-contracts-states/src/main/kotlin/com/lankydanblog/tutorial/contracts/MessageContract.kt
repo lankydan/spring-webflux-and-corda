@@ -1,4 +1,4 @@
-package net.corda.contracts
+package com.lankydanblog.tutorial.contracts
 
 import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction

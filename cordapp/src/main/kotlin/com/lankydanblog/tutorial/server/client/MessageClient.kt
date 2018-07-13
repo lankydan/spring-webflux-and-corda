@@ -13,19 +13,21 @@ import reactor.core.publisher.Mono
 
 class MessageClient(private val encoder: Jackson2JsonEncoder, private val decoder: Jackson2JsonDecoder) {
 
+    // try setup the default exchange strategy of the client -> DefaultWebClientBuilder
+    // cannot be done DefaultExchangeStrategiesBuilder does not allow this
+    // plus WebClient.create() inits a new webclient with the default builders properties which wont
+    // include any config ive done
     private val strategies = ExchangeStrategies
         .builder()
-        .codecs { clientDefaultCodecsConfigurer ->
-            clientDefaultCodecsConfigurer.defaultCodecs()
-                .jackson2JsonEncoder(encoder)
-            clientDefaultCodecsConfigurer.defaultCodecs()
-                .jackson2JsonDecoder(decoder)
-
+        .codecs { clientCodecConfigurer ->
+            clientCodecConfigurer.defaultCodecs().jackson2JsonEncoder(encoder)
+            clientCodecConfigurer.defaultCodecs().jackson2JsonDecoder(decoder)
         }.build()
 
-//    private val client = WebClient.create("http://localhost:10011")
-
-    private val client = WebClient.builder().exchangeStrategies(strategies).baseUrl("http://localhost:10011").build()
+    private val client = WebClient.builder()
+        .exchangeStrategies(strategies)
+        .baseUrl("http://localhost:10011")
+        .build()
 
     fun doStuff() {
         val message = Message("O=PartyB,L=London,C=GB", "hello there")

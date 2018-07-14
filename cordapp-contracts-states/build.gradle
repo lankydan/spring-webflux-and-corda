@@ -8,15 +8,6 @@ repositories {
 
 apply plugin: 'kotlin'
 apply plugin: 'net.corda.plugins.cordapp'
-apply plugin: 'net.corda.plugins.cordformation'
-
-sourceSets {
-    main {
-        resources {
-            srcDir "../config/dev"
-        }
-    }
-}
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"

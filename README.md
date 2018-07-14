@@ -1,20 +1,12 @@
-![Corda](https://www.corda.net/wp-content/uploads/2016/11/fg005_corda_b.png)
+# Spring WebFlux and Corda
 
-# Spring webserver
-
-This project defines a simple Spring webserver that connects to a Corda node via RPC.
+This project uses Spring WebFlux to stream the progress of a simple flow and updates of states that are saved to the vault.
 
 # Structure:
 
-The Spring web server is defined in the `server` module, and has two parts:
-
-* `src/main/resources/static`, which defines the webserver's frontend
-* `src/main/kotlin/net/corda/server`, which defines the webserver's backend
-
-The backend has two controllers, defined in `server/src/main/kotlin/net/corda/server/Controller.kt`:
-
-* `StandardController`, which provides generic (non-CorDapp specific) REST endpoints
-* `CustomController`, which the user can extend to provide CorDapp-specific REST endpoints
+* app: Spring code
+* cordapp: Corda application code
+* contracts-and-states: Contracts and states
 
 # Pre-requisites:
 
@@ -24,7 +16,12 @@ See https://docs.corda.net/getting-set-up.html.
 
 ## Running the nodes:
 
-See https://docs.corda.net/tutorial-cordapp.html#running-the-example-cordapp.
+Run the following gradle task to build the Corda nodes
+
+* Windows: `gradlew.bat deployNodes`
+* Unix: `./gradlew deployNodes`
+
+Once built, go to the `build/nodes` directory and run `./runnodes` 
 
 ## Running the webservers:
 
@@ -33,8 +30,6 @@ Once the nodes are running, you can start the node webserver from the command li
 * Windows: `gradlew.bat runPartyAServer`
 * Unix: `./gradlew runPartyAServer`
 
-You can also start the webservers using the `Run PartyA Server` IntelliJ run configuration.
-
 Both approaches use environment variables to set:
 
 * `server.port`, which defines the HTTP port the webserver listens on
@@ -42,18 +37,16 @@ Both approaches use environment variables to set:
 
 ## Interacting with the nodes:
 
-Once the nodes are started, you can access the node's frontend at the following address:
+Send a message via a post request
 
-    `localhost:10011`
+    `localhost:10011/messages`
 
-And you can access the REST endpoints at:
+with a body like
+```json
+{
+    "recipient": "O=PartyB,L=London,C=GB",
+    "contents": "this is a temporary message"
+}
+```
 
-    `localhost:10011/[ENDPOINT]`
-
-For example, you can check the node's status using:
-
-    `localhost:10011/status`
-    
- ```
- java -Xmx512m -Dlog4j.configurationFile=../../../src/main/resources/log4j2.xml -javaagent:drivers/jolokia-jvm-1.3.7-agent.jar=port=7006 -jar corda.jar
- ```
+Most importantly my blog can be found at [www.lankydanblog.com](https://lankydanblog.com) and you can follow me on Twitter at [@LankyDanDev](https://twitter.com/LankyDanDev)

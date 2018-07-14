@@ -2,16 +2,23 @@ package com.lankydanblog.tutorial.server.client
 
 import com.lankydanblog.tutorial.server.dto.Message
 import net.corda.core.node.services.Vault
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType.APPLICATION_STREAM_JSON
 import org.springframework.http.MediaType.TEXT_EVENT_STREAM
 import org.springframework.http.codec.json.Jackson2JsonDecoder
 import org.springframework.http.codec.json.Jackson2JsonEncoder
+import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 
-
-class MessageClient(private val encoder: Jackson2JsonEncoder, private val decoder: Jackson2JsonDecoder) {
+@Component
+class MessageClient(
+    @Value("\${server.host}") private val host: String,
+    @Value("\${server.port}") private val port: Int,
+    private val encoder: Jackson2JsonEncoder,
+    private val decoder: Jackson2JsonDecoder
+) {
 
     // try setup the default exchange strategy of the client -> DefaultWebClientBuilder
     // cannot be done DefaultExchangeStrategiesBuilder does not allow this
@@ -26,7 +33,7 @@ class MessageClient(private val encoder: Jackson2JsonEncoder, private val decode
 
     private val client = WebClient.builder()
         .exchangeStrategies(strategies)
-        .baseUrl("http://localhost:10011")
+        .baseUrl("http://$host:$port")
         .build()
 
     fun doStuff() {

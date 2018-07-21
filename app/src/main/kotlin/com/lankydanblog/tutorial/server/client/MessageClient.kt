@@ -16,18 +16,15 @@ import reactor.core.publisher.Mono
 class MessageClient(
     @Value("\${server.host}") private val host: String,
     @Value("\${server.port}") private val port: Int,
-    private val encoder: Jackson2JsonEncoder,
     private val decoder: Jackson2JsonDecoder
 ) {
 
-    // try setup the default exchange strategy of the client -> DefaultWebClientBuilder
     // cannot be done DefaultExchangeStrategiesBuilder does not allow this
     // plus WebClient.create() inits a new webclient with the default builders properties which wont
     // include any config ive done
     private val strategies = ExchangeStrategies
         .builder()
         .codecs { clientCodecConfigurer ->
-            clientCodecConfigurer.defaultCodecs().jackson2JsonEncoder(encoder)
             clientCodecConfigurer.defaultCodecs().jackson2JsonDecoder(decoder)
         }.build()
 
@@ -53,7 +50,7 @@ class MessageClient(
             .accept(APPLICATION_STREAM_JSON)
             .exchange()
             .flatMapMany { it.bodyToFlux(Vault.Update::class.java) }
-            .subscribe { println("STEP: $it") }
+            .subscribe { println("UPDATE: $it") }
 
     }
 }

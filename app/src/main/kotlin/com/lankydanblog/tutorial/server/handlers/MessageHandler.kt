@@ -10,6 +10,8 @@ import com.lankydanblog.tutorial.flows.SendMessageFlow
 import com.lankydanblog.tutorial.server.NodeRPCConnection
 import com.lankydanblog.tutorial.server.dto.Message
 import com.lankydanblog.tutorial.states.MessageState
+import net.corda.core.messaging.CordaRPCOps
+import org.reactivestreams.Publisher
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.MediaType.APPLICATION_STREAM_JSON
 import org.springframework.http.MediaType.TEXT_EVENT_STREAM
@@ -27,17 +29,15 @@ import java.util.*
 @Component
 class MessageHandler(rpc: NodeRPCConnection) {
 
-    private val proxy = rpc.proxy
+    private val proxy: CordaRPCOps = rpc.proxy
 
     fun updates(request: ServerRequest): Mono<ServerResponse> {
         return ok().contentType(APPLICATION_STREAM_JSON)
             .body(trackNewMessages(), ParameterizedTypeReference.forType(Vault.Update::class.java))
     }
 
-    private fun trackNewMessages() =
-        toPublisher(
-            proxy.vaultTrackBy<MessageState>(QueryCriteria.LinearStateQueryCriteria(status = Vault.StateStatus.UNCONSUMED)).updates
-        )
+    private fun trackNewMessages(): Publisher<Vault.Update<MessageState>> =
+        toPublisher(proxy.vaultTrackBy<MessageState>().updates)
 
     fun post(request: ServerRequest): Mono<ServerResponse> {
         val message = request.bodyToMono(Message::class.java)
@@ -49,7 +49,7 @@ class MessageHandler(rpc: NodeRPCConnection) {
         }
     }
 
-    private fun startTrackedFlow(message: Message, id: UUID) =
+    private fun startTrackedFlow(message: Message, id: UUID): Publisher<String> =
         toPublisher(
             proxy.startTrackedFlow(
                 ::SendMessageFlow, state(message, id)

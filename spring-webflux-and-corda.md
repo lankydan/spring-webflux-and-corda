@@ -1,6 +1,6 @@
 It's been a while since my last post but I'm finally back! Since I am still on my project, I will be writing about using Corda again. This time, rather than focusing on Corda, we'll look at using Spring with Corda. More specifically Spring WebFlux. Why do this? One, because we can. Two, because it allows us to stream events coming out of the Corda node. This provides us with the possibility to track the progress or flows or retrieve updates to the vault and send them to any clients registered to the relevant endpoints. Using WebFlux with Corda did introduce a few problems, some originating from Corda and some from Spring, although the Spring issues were to do with me expecting the Spring Boot + WebFlux combo to auto-configure more for me.
 
-In this post I'm going to assume you have some experience with Corda but if you do need some extra information on the subject I recommend reading through my previous posts: [What is Corda](URL) and [Developing with Corda](URL). Furthermore, I also suggest taking a look at [Doing stuff with Spring WebFlux](https://lankydanblog.com/2018/03/15/doing-stuff-with-spring-webflux/) as an introduction to WebFlux.
+In this post, I'm going to assume you have some experience with Corda but if you do need some extra information on the subject I recommend reading through my previous posts: [What is Corda](URL) and [Developing with Corda](URL). Furthermore, I also suggest taking a look at [Doing stuff with Spring WebFlux](https://lankydanblog.com/2018/03/15/doing-stuff-with-spring-webflux/) as an introduction to WebFlux.
 
 The `3.1` Open Source version of Corda will be used for the contents of this tutorial.
 
@@ -8,7 +8,7 @@ We will also be implementing everything in Kotlin but the contents of this post 
 
 ## Introduction to the example application
 
-We will be modelling a really simple application that doesn't really provide much use and is just something I botched together for the sake of this post. The application will consist of one party sending a message (represented by the `MessageState`) to another party. To do this the `SendMessageFlow` will ran and once it does, both parties will have a copy of the message and that's it. Short and simple but should provide us with enough to demonstrate how WebFlux can work with Corda.
+We will be modelling a really simple application that doesn't really provide much use and is just something I botched together for the sake of this post. The application will consist of one party sending a message (represented by the `MessageState`) to another party. To do this the `SendMessageFlow` will run and once it does, both parties will have a copy of the message and that's it. Short and simple but should provide us with enough to demonstrate how WebFlux can work with Corda.
 
 ## Structure
 
@@ -84,7 +84,7 @@ dependencies {
     cordapp project(":cordapp")
 }
 
-// tasks to run webservers
+// tasks to run web servers
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
@@ -97,9 +97,9 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
 ```
 I'm no expert in using Gradle so there is probably some things in this snippet that code be done better but it does what it needs to.
 
-So, there are a few things I want to highlight. Spring Boot `2.0.3.RELEASE` is being used and to go along with this the `kotlin-spring` plugin is used to add `open` to all Kotlin classes marked with certain Spring annotations. This is needed for quite a lot of situations since Spring requires some classes to be non final which isn't a problem by default in Java but is problematic with Kotlin since all classes are final by default. More information on the plugin can be found on [kotlinlang.org](https://kotlinlang.org/docs/reference/compiler-plugins.html#spring-support).
+So, there are a few things I want to highlight. Spring Boot `2.0.3.RELEASE` is being used and to go along with this the `kotlin-spring` plugin is used to add `open` to all Kotlin classes marked with certain Spring annotations. This is needed for quite a lot of situations since Spring requires some classes to be non-final which isn't a problem by default in Java but is problematic with Kotlin since all classes are final by default. More information on the plugin can be found on [kotlinlang.org](https://kotlinlang.org/docs/reference/compiler-plugins.html#spring-support).
 
-`spring-boot-starter-webflux` pulls in the WebFlux dependencies along with general Spring webserver code that we need to get everything up and running.
+`spring-boot-starter-webflux` pulls in the WebFlux dependencies along with general Spring web server code that we need to get everything up and running.
 
 `rxjava-reactive-streams`, this is an interesting one that we will see come into play later on. Since Corda uses RxJava `1.x.x` rather than the newer RxJava2, it's `Observable`s do not implement the Java 8 `Publisher` interface that is used by Spring WebFlux to return reactive streams. This dependency allows these older `Observable`s to be converted into a `Publisher` so it is compatible with what WebFlux needs. We will touch on this again later when we look at the code to do this conversion.
 
@@ -107,7 +107,7 @@ Finally, the `netty-all` version needed to be forced to `4.1.25.Final` to resolv
 
 ## Routing functions
 
-WebFlux introduces a functional approach to routing requests to the functions that handle them. More information on this can be found in [Doing stuff with Spring WebFlux](https://lankydanblog.com/2018/03/15/doing-stuff-with-spring-webflux/). I don't want to jump deep into how WebFlux is working but we will take a quick look at defining the routing functions. The main reason for this is due to using Kotlin instead of Java as it provides a different way to define the functions thats to a DSL.
+WebFlux introduces a functional approach to routing requests to the functions that handle them. More information on this can be found in [Doing stuff with Spring WebFlux](https://lankydanblog.com/2018/03/15/doing-stuff-with-spring-webflux/). I don't want to jump deep into how WebFlux is working but we will take a quick look at defining the routing functions. The main reason for this is due to using Kotlin instead of Java as it provides a different way to define the functions by instead using a DSL.
 
 Below is the code to define the routing for this tutorial:
 ```kotlin
@@ -126,7 +126,7 @@ class MessageRouter {
     }
 }
 ```
-The `routes` bean takes in the `MessageHandler` bean (which we will look at later) and maps maps two URI's to functions found in `MessageHandler`. The DSL allows for a slightly shorter version when compared to the Java implementation. There are a few parts to focus on in this snippet.
+The `routes` bean takes in the `MessageHandler` bean (which we will look at later) and maps two URI's to functions found in `MessageHandler`. The DSL allows for a slightly shorter version when compared to the Java implementation. There are a few parts to focus on in this snippet.
 
 `("/messages")` defines the base request path of the two routing functions. The DSL allows the functions themselves to be nested from this path and helps with the conveying the structure of the routes.
 
@@ -136,7 +136,7 @@ The second function receives updates from the Corda node. To do this it returns 
 
 ## Handler functions
 
-In this section we will look at the `MessageHandler` that was mentioned quite a few times in the previous section. This class contains all the functions that perform the actual business logic, the routing was just a means to reach this point.
+In this section, we will look at the `MessageHandler` that was mentioned quite a few times in the previous section. This class contains all the functions that perform the actual business logic, the routing was just a means to reach this point.
 
 Any my previous post, [Doing stuff with Spring WebFlux](https://lankydanblog.com/2018/03/15/doing-stuff-with-spring-webflux/) will explain the more WebFlux specific parts of these examples in more depth than I will in this post.
 
@@ -200,9 +200,9 @@ This function returns new messages as they are saved to the vault. This sort of 
 
 The Corda related code in this snippet is all contained within the `trackNewMessages` function. It uses `CordaRPCOps`'s `vaultTrackBy` to access the vault service via RPC and start tracking updates to any `MessageStates`. Since we have not passed any arguments to the function it will be tracking `UNCONSUMED` states only. `vaultTrackBy` returns a `DataFeed` object that can be used to either retrieve a snapshot of the vault via the `snapshot` property or by accessing the `updates` property an `Observable` will be returned allowing it's update events to be subscribed to. This RxJava `Observable` is what we will use to stream data back to the caller.
 
-This is the first instance where we need to use the `rxjava-reactive-streams` that I mentioned earlier. The `toPublisher` method takes in the `Observable` and converts it into a `Publisher` since WebFlux requires Java 8 compatible reactive streaming libraries which must implement `Publisher`. For example Spring tends to make use of [Reactor](https://projectreactor.io/) which provides the `Mono` and `Flux` classes.
+This is the first instance where we need to use the `rxjava-reactive-streams` that I mentioned earlier. The `toPublisher` method takes in the `Observable` and converts it into a `Publisher` since WebFlux requires Java 8 compatible reactive streaming libraries which must implement `Publisher`. For example, Spring tends to make use of [Reactor](https://projectreactor.io/) which provides the `Mono` and `Flux` classes.
 
-Once the `Publisher` has been created it simply needs to be fed into a `ServerResponse`. As everything has gone well at this point we will return a `200` response via the `ok` method and set the `Content-Type` to `APPLICATION_STREAM_JSON`. Finally the `Publisher` from `trackNewMessages` is put into the body of the response ready to be subscribed to by the requesting client.
+Once the `Publisher` has been created it simply needs to be fed into a `ServerResponse`. As everything has gone well at this point we will return a `200` response via the `ok` method and set the `Content-Type` to `APPLICATION_STREAM_JSON`. Finally, the `Publisher` from `trackNewMessages` is put into the body of the response ready to be subscribed to by the requesting client.
 
 The functionality to stream updates from the node to a client is complete what about actually saving a new message? Furthermore, is there any information that we can pass back to the sender about the executing flow? So let's answer those two questions. Yes, we can save a new message using WebFlux and yes, there is information about the progress of the flow can be returned.
 
@@ -236,7 +236,7 @@ private fun state(message: Message, id: UUID) =
 private fun parse(party: String) = proxy.wellKnownPartyFromX500Name(CordaX500Name.parse(party))
         ?: throw IllegalArgumentException("Unknown party name.")
 ```
-`proxy.startTrackedFlow` starts a flow whose progress can be tracked by any `ProgressTracker`s added to the flow. The `startTrackedFlow` defined in this class simply delegates to the afore mentioned function and returns its `progress` property; an `Observable<String>` whose events consist of the `ProgressTracker`'s progress.
+`proxy.startTrackedFlow` starts a flow whose progress can be tracked by any `ProgressTracker`s added to the flow. The `startTrackedFlow` defined in this class simply delegates to the aforementioned function and returns its `progress` property; an `Observable<String>` whose events consist of the `ProgressTracker`'s progress.
 
 The `MessageState` that's passed to the flow is created from the `Message` object passed in from the request. This is to allow easier input of the message data to the endpoint since it contains less information than the `MessageState` itself. `parse` converts the string X500 name passed in the `Message` into a `CordaX500Name` and then into a `Party` within the network, assuming one exists.
 
@@ -244,7 +244,7 @@ This is then packaged into a response via the `created` method. The `Content-Typ
 
 ## Creating a client
 
-I think now that the endpoints are setup we should create a client that can send requests and consume the streams sent back to it. Later on we will briefly look at the flow code to get a fuller understanding of whats going on.
+I think now that the endpoints are set up we should create a client that can send requests and consume the streams sent back to it. Later on, we will briefly look at the flow code to get a fuller understanding of whats going on.
 
 To send requests to a reactive back-end Spring WebFlux provides the `WebClient` class provides a way to both send and handle the returned stream. The `MessageClient` below does just that:
 ```kotlin
@@ -290,7 +290,7 @@ class MessageClient(
 ```
 The `MessageClient` wraps a `WebClient` that is used by the class to send requests to the address specified in the `WebClient`'s builder. There is some extra configuration but going on in this class around serialisation but I want to brush over that for now as there is a section further down covering that topic.
 
-As before [Doing stuff with Spring WebFlux](https://lankydanblog.com/2018/03/15/doing-stuff-with-spring-webflux/) provides in depth explanations into the WebFlux specific methods.
+As before [Doing stuff with Spring WebFlux](https://lankydanblog.com/2018/03/15/doing-stuff-with-spring-webflux/) provides in-depth explanations into the WebFlux specific methods.
 
 So let's look at each request individually, first up the `POST` request to the `/messages` endpoint:
 ```kotlin
@@ -304,7 +304,7 @@ client
     .flatMapMany { it.bodyToFlux(String::class.java) }
     .subscribe { println("STEP: $it") }
 ```
-The `post` method creates a builder that allows the contents of the request to be specified. This should match up to an endpoint that we defined earlier. Once the request has been built, call the `exchange` method to send it to the server. The body of the response is then mapped to a `Flux<String>` allowing it to be subscribed to. That is the essence of using Reactive Streams. Once the response has been subscribed to, it is up to the client to perform whatever processing they wish to do on each value sent it. In this scenario it simply just prints out the current step of the `ProgressTracker`.
+The `post` method creates a builder that allows the contents of the request to be specified. This should match up to an endpoint that we defined earlier. Once the request has been built, call the `exchange` method to send it to the server. The body of the response is then mapped to a `Flux<String>` allowing it to be subscribed to. That is the essence of using Reactive Streams. Once the response has been subscribed to, it is up to the client to perform whatever processing they wish to do on each value sent it. In this scenario, it simply just prints out the current step of the `ProgressTracker`.
 
 If we sent a request via this piece of code we would receive the following:
 ```
@@ -347,9 +347,9 @@ The nice thing about this endpoint is that it now maintains a connection to the 
 
 ## Serialisation and Deserialisation
 
-Before we move on to look at the flow that is actually executing on the node. I wanted focus on setting up serialisation and deserialisation correctly so that the data that is retrieved be the `/messages/updates` endpoint is able to serialise it's data correct to pass to the client, who also need to be able to deserialise the response data.
+Before we move on to look at the flow that is actually executing on the node. I wanted to focus on setting up serialisation and deserialisation correctly so that the data that is retrieved be the `/messages/updates` endpoint is able to serialise its data correct to pass to the client, who also need to be able to deserialise the response data.
 
-Normally Spring does a lot of this for you, and it still does, but it seems with WebFlux there are some extra steps required to get it setup properly. Disclaimer, this is from my experience and if you know of better ways to do this I would be interested to hear from you.
+Normally Spring does a lot of this for you, and it still does, but it seems with WebFlux there are some extra steps required to get it set up properly. Disclaimer, this is from my experience and if you know of better ways to do this I would be interested to hear from you.
 
 ### Corda JacksonSupport
 
@@ -364,7 +364,7 @@ That being said, the sky isn't falling down yet. Below is the exception that dis
 ```
 com.fasterxml.jackson.databind.ObjectMapper cannot be cast to net.corda.client.jackson.JacksonSupport$PartyObjectMapper
 ```
-From this we can determine that it is simply that our `ObjectMapper` is of the wrong type and actually needs to be the subtype `PartyObjectMapper`. Taking this a bit further we can see that this mapper is found in the `JacksonSupport` class as well. Now all there is left to do is create this mapper and use that instead of the default `ObjectMapper`.
+From this, we can determine that it is simply that our `ObjectMapper` is of the wrong type and actually needs to be the subtype `PartyObjectMapper`. Taking this a bit further we can see that this mapper is found in the `JacksonSupport` class as well. Now all there is left to do is create this mapper and use that instead of the default `ObjectMapper`.
 
 So lets see how to do that:
 ```kotlin
@@ -373,11 +373,11 @@ fun rpcObjectMapper(rpc: NodeRPCConnection): ObjectMapper {
     return JacksonSupport.createDefaultMapper(rpc.proxy)
 }
 ```
-This will create a `RpcObjectMapper` which implements `PartyObjectMapper` and makes use of RPC to retrieve node information to make it possible to deserialise the various party classes. Inside the `createDefaultMapper` the `cordaModule` from before is added and thanks to Spring, this object mapper will now be used by default for most (note the most for later) instances where serialisation or deserialisation is needed.
+This will create a `RpcObjectMapper` which implements `PartyObjectMapper` and makes use of RPC to retrieve node information to make it possible to deserialise the various party classes. Inside the `createDefaultMapper,` the `cordaModule` from before is added and thanks to Spring, this object mapper will now be used by default for most (note the most for later) instances where serialisation or deserialisation is needed.
 
 ### Some more serialisation and deserialisation configuration
 
-Now... I'm actually in quite a wierd position. I wanted to go through all the other steps to get the endpoint working but no matter what I do, I cannot seem to recreate all the errors I used to get before getting it to work. I don't know what to say... But somewhere my exceptions are being swallowed and stopping me from seeing what is going on. Anyway, we must continue on. Thankfully I know why I added the rest of the code but I cannot provide you with the exception that each changed fixed...
+Now... I'm actually in quite a weird position. I wanted to go through all the other steps to get the endpoint working but no matter what I do, I cannot seem to recreate all the errors I used to get before getting it to work. I don't know what to say... But somewhere my exceptions are being swallowed and stopping me from seeing what is going on. Anyway, we must continue on. Thankfully I know why I added the rest of the code but I cannot provide you with the exception that each changed fixed...
 
 Soooo, let's look at the end product of the `rpcObjectMapper` that we started working on earlier:
 ```kotlin
@@ -403,13 +403,13 @@ abstract class VaultUpdateMixin {
     abstract fun isEmpty()
 }
 ```
-There are a few additions here. The `JsonComponentModule` is added as a bean so that it picks up the the `@JsonSerializer` and `@JsonDeserializer` custom components that are defined (in other classes). It seems that even if it is added to the mapper as a module, it still requires the bean itself to be created if it is going to find and register the custom JSON components.
+There are a few additions here. The `JsonComponentModule` is added as a bean so that it picks up the `@JsonSerializer` and `@JsonDeserializer` custom components that are defined (in other classes). It seems that even if it is added to the mapper as a module, it still requires the bean itself to be created if it is going to find and register the custom JSON components.
 
 Next is the `MixinModule`. This is needed due to `Vault.Update` having a method called `isEmpty`, which doesn't play nicely with Jackson who gets confused and thinks that `isEmpty` matches to a boolean field called `empty` on the property and tries to pass it's value when deserialising the JSON back into an object. The Mixin allows us to add Jackson annotations onto the class without actually having access to the class itself, which we obviously don't control since this an object from within Corda's codebase. The other option is that this is added to the `cordaModule` we discussed earlier but that is a different conversation.
 
-The `MixinModule` itself is simply a class who's constructor adds the `VaultUpdateMixin` to the itself. Then this module is added back into the mapper like any other module. Job done. 
+The `MixinModule` itself is simply a class whose constructor adds the `VaultUpdateMixin` to itself. Then this module is added back into the mapper like any other module. Job done. 
 
-The Jackson annotation that was added to the Mixin was `@JsonIgnore` which speaks for itself really, when serialising or deserialising the `isEmpty` function will be ignored.
+The Jackson annotation that was added to the Mixin was `@JsonIgnore` which speaks for itself really when serialising or deserialising the `isEmpty` function will be ignored.
 
 ### Custom Serialisers and Deserialisers
 
@@ -475,7 +475,7 @@ The `ContractStateDeserialiser` is a pretty lazy implementation since I only hav
 
 ### WebFlux specific configuration
 
-This sub section goes over the extra configuration that is required due to using WebFlux. You have already seen some of the configuration within the `MessageClient` but there is a bit extra that needs to be done. We will go over just that here.
+This subsection goes over the extra configuration that is required due to using WebFlux. You have already seen some of the configuration within the `MessageClient` but there is a bit extra that needs to be done. We will go over just that here.
 ```kotlin
 @Bean
 fun decoder(rpcObjectMapper: ObjectMapper): Jackson2JsonDecoder =
@@ -583,3 +583,11 @@ class SendMessageResponder(val session: FlowSession) : FlowLogic<Unit>() {
 }
 ```
 It's a pretty simple flow with the addition of a `ProgressTracker` that was used in the `/messages` request to follow the current state of the flow. Long story short, this flow takes the `MessageState` passed into it and sends it to the counterparty. While moving through the flow the `ProgressTracker` is updated to the relevant step. Further documentation on using a `ProgressTracker` can be found in the [Corda docs](https://docs.corda.net/flow-state-machines.html#progress-tracking).
+
+## Closing time
+
+That was honestly a lot longer than I thought it would be and has taken me much longer to write than I hoped. 
+
+In conclusion, Spring WebFlux provides the capability to use reactive streams to handle response events whenever they arrive. When used with Corda, the progress of a flow can be tracked on a persistent stream of vault updates can be maintained and acted upon as they arrive. To fully make use of WebFlux with Corda, we also had to look into ensuring that objects were serialised correctly by the server and then deserialised by the client so they can be made use of. Lucky Corda does provide some of this but one or two classes or features are missing and we need to make sure that the object mapper they provide is used. Unfortunately, WebFlux requires a bit more configuration than I'm normally accustomed to when using Spring modules but nothing that can't be fixed.
+
+The rest of the code for this post can be found on my [GitHub](https://github.com/lankydan/spring-webflux-and-corda)

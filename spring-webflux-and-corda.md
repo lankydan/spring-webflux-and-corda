@@ -2,7 +2,7 @@ It's been a while since my last post but I'm finally back! Since I am still on m
 
 In this post, I'm going to assume you have some experience with Corda but if you do need some extra information on the subject I recommend reading through my previous posts: [What is Corda](https://lankydanblog.com/2018/06/05/what-is-corda/) and [Developing with Corda](https://lankydanblog.com/2018/06/05/developing-with-corda/). Furthermore, I also suggest taking a look at [Doing stuff with Spring WebFlux](https://lankydanblog.com/2018/03/15/doing-stuff-with-spring-webflux/) as an introduction to WebFlux.
 
-The `3.2` Open Source version of Corda will be used for the contents of this tutorial. I actually started writing this post based on `3.1` but the newer version was released during this time...
+The `3.2` Open Source version of Corda will be used for the contents of this tutorial. I actually started writing this post based on `3.1` but the newer version was released during this time. Due to this there are a few comments based on moving between these versions.
 
 We will also be implementing everything in Kotlin but the contents of this post can be implemented in Java as well.
 
@@ -348,7 +348,9 @@ Spring tends to use Jackson by default and, very handily, Corda provides a lot o
 @Bean
 fun cordaModule() = JacksonSupport.cordaModule
 ```
-But, this route has a few caveats. Some classes cannot be deserialised since the module relies on the `ObjectMapper` having access to node information, for example via the RPC client `CordaRPCOps`. Without this, deserialising a `Party`, `AbstractParty` or `AnonymousParty` will fail. Not only that, but this has now been deprecated from Corda `3.2` due to not being thread safe (this wasn't the case in `3.1`). The solution I give below is also the solution that Corda recommends taking from now on.
+But, this route has a few caveats. Some classes cannot be deserialised since the module relies on the `ObjectMapper` having access to node information, for example via the RPC client `CordaRPCOps`. Without this, deserialising a `Party`, `AbstractParty` or `AnonymousParty` will fail. Not only that, but this has now been deprecated from Corda `3.2` due to not being thread safe. `JacksonSupport.cordaModule` has also been moved into its own class (`CordaModule`). 
+
+The solution I give below is also the solution that Corda recommends taking from now on.
 
 Below is the exception thrown when the `MessageClient` retrieves updates from the `/messages/updates` endpoint (for the rest of this section the same endpoint will be used):
 ```
@@ -363,7 +365,7 @@ fun rpcObjectMapper(rpc: NodeRPCConnection): ObjectMapper {
     return JacksonSupport.createDefaultMapper(rpc.proxy)
 }
 ```
-This will create a `RpcObjectMapper` which implements `PartyObjectMapper` and makes use of RPC to retrieve node information to make it possible to deserialise the various party classes. Inside the `createDefaultMapper,` the `cordaModule` from before is added and thanks to Spring, this will now be the default object mapper for most (note the most for later) instances where serialisation or deserialisation is needed.
+This will create a `RpcObjectMapper` which implements `PartyObjectMapper` and makes use of RPC to retrieve node information to make it possible to deserialise the various party classes. Inside the `createDefaultMapper,` the `CordaModule` from before is added and thanks to Spring, this will now be the default object mapper for most (note the most for later) instances where serialisation or deserialisation is needed.
 
 ### Some more serialisation and deserialisation configuration
 
@@ -401,7 +403,7 @@ There are a few additions here. The `JsonComponentModule` is added as a bean so 
 
 Next is the `MixinModule`. `Vault.Update` needs this due to having a method called `isEmpty`, which doesn't play nicely with Jackson who gets confused and thinks that `isEmpty` matches to a boolean field called `empty`. So when deserialising the JSON back into an object it tries to pass in a value for the field.
 
-The Mixin allows us to add Jackson annotations onto a class without actually having access to the class itself which we obviously don't control since this an object from within Corda's codebase. The other option is that this is added to the `cordaModule` we discussed earlier but that is a different conversation.
+The Mixin allows us to add Jackson annotations onto a class without actually having access to the class itself which we obviously don't control since this an object from within Corda's codebase. The other option is that this is added to the `CordaModule` we discussed earlier but that is a different conversation.
 
 The `MixinModule` itself is simply a class whose constructor adds the `VaultUpdateMixin` to itself. The mapper then adds the module just like any other module. Job done. 
 
@@ -412,9 +414,9 @@ Before we continue, I want to comment on the `SecureHashMixin`:
 @JsonDeserialize(using = JacksonSupport.SecureHashDeserializer::class)
 abstract class SecureHashMixin
 ```
-I have added this in after moving from `3.1` to `3.2`. To me it looks like adding a Mixin for `SecureHash` has been forgotten. The `CordaModule` (now a separate class) includes serialisation and deserialisation for `SecureHash.SHA256` but not `SecureHash`. The above code is copy and paste with the with a different class being tied to the Mixin.
+I have added this in after moving from `3.1` to `3.2`. To me it looks like adding a Mixin for `SecureHash` has been forgotten. The `CordaModule` includes serialisation and deserialisation for `SecureHash.SHA256` but not `SecureHash`. The above code is copy and paste from `CordaModule` with a different class being tied to the Mixin.
 
-Once this is included, differences between `3.1` and `3.2` will be resolved. 
+Once this is included, the differences between `3.1` and `3.2` will be resolved. 
 
 I think I'll raise an issue for this!
 

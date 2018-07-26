@@ -11,13 +11,13 @@ We will be modelling a really simple application that doesn't provide much use a
 Normally I start by looking at the dependencies. Although, since I have split the code into separate modules, it would be best to first view the structure of the little example application.
 <pre>.
 +-- app
-|   +-- 
+|   +-- {spring code}
 |   +-- build.gradle
 +-- cordapp
-|   +-- 
+|   +-- {flow code}
 |   +-- build.gradle
 +-- contracts-and-states
-|   +-- 
+|   +-- {contracts and states code}
 |   +-- build.gradle
 +-- build.gradle
 </pre>
@@ -160,7 +160,7 @@ From this, we can determine that our <code>ObjectMapper</code> is of the wrong t
 
 So let's see how to do that:
 
-[gist https://gist.github.com/lankydan/71077a750f0c10387e0785a86f83d487/]
+[gist https://gist.github.com/lankydan/71077a750f0c10387e0785a86f83d487 /]
 
 This will create a <code>RpcObjectMapper</code> which implements <code>PartyObjectMapper</code> and makes use of RPC to retrieve node information to make it possible to deserialise the various party classes. Inside the <code>createDefaultMapper,</code> the <code>CordaModule</code> from before is added and thanks to Spring, this will now be the default object mapper for most (note the most for later) instances where serialisation or deserialisation is needed.
 <h3>Some more serialisation and deserialisation configuration</h3>

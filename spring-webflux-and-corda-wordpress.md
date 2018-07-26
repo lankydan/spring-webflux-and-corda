@@ -95,7 +95,7 @@ To send requests to a reactive back-end, Spring WebFlux provides the <code>WebCl
 
 The <code>MessageClient</code> wraps and uses a <code>WebClient</code> to send requests to the address specified in the <code>WebClient</code>'s builder. There is some extra configuration going on in this class around deserialisation, but I want to brush over that for now as there is a section further down covering that topic.
 
-As before [Doing stuff with Spring WebFlux](https://lankydanblog.com/2018/03/15/doing-stuff-with-spring-webflux/) provides in-depth explanations into the WebFlux specific methods.
+As before <a href="https://lankydanblog.com/2018/03/15/doing-stuff-with-spring-webflux/" target="_blank" rel="noopener">Doing stuff with Spring WebFlux</a> provides in-depth explanations into the WebFlux specific methods.
 
 So let's look at each request individually, first up the <code>POST</code> request to the <code>/messages</code> endpoint:
 
@@ -172,15 +172,17 @@ Soooo, let's look at the end product of the <code>rpcObjectMapper</code> that we
 
 There are a few additions here. The <code>JsonComponentModule</code> is added as a bean so that it picks up the defined <code>@JsonSerializer</code> and <code>@JsonDeserializer</code> custom components (in other classes). It seems that even if it is added to the mapper as a module, it still requires the bean itself to be created if it is going to find and register the custom JSON components.
 
-Next is the <code>MixinModule</code>. <code>Vault.Update</code> needs this due to having a method called <code>isEmpty</code>, which doesn't play nicely with Jackson who gets confused and thinks that <code>isEmpty</code> matches to a boolean field called <code>empty</code>. So when deserialising the JSON back into an object it tries to pass in a value for the field.
+Next is the <code>MixinModule</code>. This class resolves issues that arise when deserialising <code>Vault.Update</code> and <code>SecureHash</code>. Let's take a closer look.
 
-The Mixin allows us to add Jackson annotations onto a class without actually having access to the class itself which we obviously don't control since this an object from within Corda's codebase. The other option is that this is added to the <code>CordaModule</code> we discussed earlier but that is a different conversation.
+A Mixin allows us to add Jackson annotations onto a class without actually having access to the class itself which we obviously don't control since this an object from within Corda's codebase. The other option is that this is added to the <code>CordaModule</code> we discussed earlier but that is a different conversation.
 
-The <code>MixinModule</code> itself is simply a class whose constructor adds the <code>VaultUpdateMixin</code> to itself. The mapper then adds the module just like any other module. Job done.
+<code>Vault.Update</code> needs this due to having a method called <code>isEmpty</code>, which doesn't play nicely with Jackson who gets confused and thinks that <code>isEmpty</code> matches to a boolean field called <code>empty</code>. So when deserialising the JSON back into an object it tries to pass in a value for the field.
 
-The Jackson annotation that was added to the Mixin was <code>@JsonIgnore</code> which speaks for itself. When serialising or deserialising the <code>isEmpty</code> function will be ignored.
+The <code>MixinModule</code> itself is simply a class whose constructor adds the <code>VaultUpdateMixin</code> and <code>SecureHashMixin</code> to itself. The mapper then adds the module just like any other module. Job done.
 
-Before we continue, I want to comment on the <code>SecureHashMixin</code>:
+The Jackson annotation added to the <code>VaultUpdateMixin</code> was <code>@JsonIgnore</code>, which speaks for itself. When serialising or deserialising the <code>isEmpty</code> function will be ignored.
+
+Next up is the <code>SecureHashMixin</code>:
 
 [gist https://gist.github.com/lankydan/62f2bc57bc46998404efdd6efbf1d178 /]
 

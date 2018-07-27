@@ -70,9 +70,6 @@ class SendMessageFlow(private val message: MessageState) : FlowLogic<SignedTrans
     private fun notary() = serviceHub.networkMapCache.notaryIdentities.first()
 }
 
-/**
- * This class responds to requests sent from the {@link TradeInputFlow}.
- */
 @InitiatedBy(SendMessageFlow::class)
 class SendMessageResponder(val session: FlowSession) : FlowLogic<Unit>() {
     @Suspendable
